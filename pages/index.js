@@ -1,20 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
+
+const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export default function HomePage() {
-  const [expenses, setExpenses] = useState([]);
   const [page, setPage] = useState(0);
+  const {
+    data: expenses,
+    error,
+    isLoading,
+  } = useSWR(`api/expense?page=${page}`, fetcher);
 
-  async function getExpenses(fetchURL = "api/expense") {
-    const response = await fetch(fetchURL);
-
-    if (response.ok) {
-      const data = await response.json();
-      setExpenses(data);
-    }
-  }
-  useEffect(() => {
-    getExpenses();
-  }, []);
+  if (error) return <div>failed to load</div>;
+  if (isLoading) return <div>loading...</div>;
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -30,24 +28,8 @@ export default function HomePage() {
       },
     });
     if (response.ok) {
-      getExpenses();
+      mutate("api/expense");
     }
-  }
-
-  async function handleNextPage() {
-    setPage(page + 1);
-
-    const params = new URLSearchParams({ page: page + 1 });
-
-    getExpenses(`api/expense?${params}`);
-  }
-
-  function handlePreviousPage() {
-    setPage(page - 1);
-
-    const params = new URLSearchParams({ page: page - 1 });
-
-    getExpenses(`api/expense?${params}`);
   }
 
   return (
@@ -71,12 +53,12 @@ export default function HomePage() {
       <div>
         <button
           type="button"
-          onClick={handlePreviousPage}
+          onClick={() => setPage(page - 1)}
           disabled={page === 0}
         >
           previous
         </button>
-        <button type="button" onClick={handleNextPage}>
+        <button type="button" onClick={() => setPage(page + 1)}>
           next
         </button>
       </div>
