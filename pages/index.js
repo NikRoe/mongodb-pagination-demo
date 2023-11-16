@@ -5,14 +5,16 @@ const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export default function HomePage() {
   const [page, setPage] = useState(0);
-  const {
-    data: expenses,
-    error,
-    isLoading,
-  } = useSWR(`api/expense?page=${page}`, fetcher);
+  const [limit, setLimit] = useState(5);
+  const { data, error, isLoading } = useSWR(
+    `api/expense?page=${page}&limit=${limit}`,
+    fetcher
+  );
 
   if (error) return <div>failed to load</div>;
   if (isLoading) return <div>loading...</div>;
+
+  const { expenses, hasNextPage } = data;
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -49,6 +51,18 @@ export default function HomePage() {
           </li>
         ))}
       </ol>
+      <label htmlFor="limit-select">Set expenses per page:</label>
+      <select
+        name="limit"
+        id="limit-select"
+        onChange={(event) => setLimit(event.target.value)}
+        value={limit}
+      >
+        <option value="">--Please choose an option--</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="15">15</option>
+      </select>
       Current page: {page + 1}
       <div>
         <button
@@ -58,7 +72,12 @@ export default function HomePage() {
         >
           previous
         </button>
-        <button type="button" onClick={() => setPage(page + 1)}>
+
+        <button
+          type="button"
+          onClick={() => setPage(page + 1)}
+          disabled={!hasNextPage}
+        >
           next
         </button>
       </div>

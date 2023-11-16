@@ -5,13 +5,20 @@ export default async function handler(request, response) {
   await connect();
 
   if (request.method === "GET") {
-    const { page } = request.query;
-    const pagesToSkip = +page * 5;
+    const page = parseInt(request.query.page, 10) || 0;
+    const limit = parseInt(request.query.limit, 10) || 5;
+
+    const pagesToSkip = page * limit;
 
     try {
-      const expenses = await Expense.find().skip(pagesToSkip).limit(5);
+      const [expenses, totalCount] = await Promise.all([
+        Expense.find().skip(pagesToSkip).limit(limit),
+        Expense.countDocuments(),
+      ]);
 
-      return response.status(200).json(expenses);
+      const hasNextPage = totalCount > (page + 1) * limit;
+
+      return response.status(200).json({ hasNextPage, expenses });
     } catch (error) {
       return response.json({ message: "Something went wrong", error: error });
     }
